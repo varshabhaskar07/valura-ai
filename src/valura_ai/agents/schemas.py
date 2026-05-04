@@ -1,4 +1,4 @@
-"""Structured-output schemas for the implemented agents.
+"""Structured-output schemas for the implemented agents and the stub.
 
 The PortfolioHealthReport shape matches the assignment's reference
 output (concentration_risk, performance, benchmark_comparison,
@@ -17,6 +17,8 @@ from __future__ import annotations
 from typing import Literal
 
 from pydantic import BaseModel, Field
+
+from ..classifier.schema import Entities
 
 
 class HealthObservation(BaseModel):
@@ -45,6 +47,23 @@ class BenchmarkComparison(BaseModel):
 class MissingData(BaseModel):
     tickers: list[str] = Field(default_factory=list)
     currencies: list[str] = Field(default_factory=list)
+
+
+class StubResponse(BaseModel):
+    """Structured payload from the stub agent.
+
+    Preserves the classifier's view of the request — intent, target agent,
+    extracted entities — so a downstream consumer can render a sensible
+    placeholder UI ("we noted you asked about NVDA + market_research; that
+    specialist is not yet available") and so the request is logged with
+    enough context to evaluate later.
+    """
+
+    intent: str
+    agent: str
+    entities: Entities
+    status: Literal["not_implemented"] = "not_implemented"
+    message: str
 
 
 class PortfolioHealthReport(BaseModel):
