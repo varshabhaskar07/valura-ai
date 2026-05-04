@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# Env / secrets
+.env
+.env.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Caches we may write
+.cache/
+fixtures/.market_cache/
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
