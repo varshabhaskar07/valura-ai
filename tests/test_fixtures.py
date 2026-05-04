@@ -129,8 +129,42 @@ def test_classification_taxonomy_present(fixtures_dir: Path) -> None:
 
 def test_classification_query_count_meets_spec(fixtures_dir: Path) -> None:
     queries = _load_classification(fixtures_dir)["queries"]
-    # Spec says ~60. We require at least that.
-    assert len(queries) >= 60
+    # Spec says ~60. We require comfortably more so per-agent buckets
+    # are still meaningful after the hidden eval set is layered in.
+    assert len(queries) >= 80
+
+
+def test_classification_history_field_well_formed(fixtures_dir: Path) -> None:
+    """If a query carries a `history` field, it must look like a real conversation prefix."""
+    queries = _load_classification(fixtures_dir)["queries"]
+    for q in queries:
+        if "history" not in q:
+            continue
+        h = q["history"]
+        assert isinstance(h, list) and h, q["id"]
+        # Synthetic history must end with assistant — otherwise the
+        # current user query is not "the next turn" the classifier sees.
+        assert h[-1]["role"] == "assistant", q["id"]
+        for turn in h:
+            assert turn["role"] in {"user", "assistant"}, q["id"]
+            assert isinstance(turn["text"], str) and turn["text"].strip(), q["id"]
+
+
+def test_classification_has_history_dependent_queries(fixtures_dir: Path) -> None:
+    """We need enough history-anchored queries to actually exercise session memory."""
+    queries = _load_classification(fixtures_dir)["queries"]
+    with_history = [q for q in queries if q.get("history")]
+    assert len(with_history) >= 8, (
+        f"only {len(with_history)} queries carry history; need >=8 to test "
+        "follow-up resolution at scale"
+    )
+
+
+def test_classification_has_minimal_context_queries(fixtures_dir: Path) -> None:
+    """At least 8 queries must be very short (<= 25 chars) to test minimal-context handling."""
+    queries = _load_classification(fixtures_dir)["queries"]
+    short = [q for q in queries if len(q["query"]) <= 25]
+    assert len(short) >= 8, f"only {len(short)} short queries; need >=8"
 
 
 def test_classification_queries_use_known_agents(fixtures_dir: Path) -> None:
@@ -174,7 +208,26 @@ def _load_safety(fixtures_dir: Path) -> dict:
 
 def test_safety_pair_count_meets_spec(fixtures_dir: Path) -> None:
     pairs = _load_safety(fixtures_dir)["pairs"]
-    assert len(pairs) >= 45
+    # Spec says ~45. Expanded set should comfortably exceed.
+    assert len(pairs) >= 70
+
+
+def test_safety_has_enough_hard_pairs(fixtures_dir: Path) -> None:
+    """Hard-difficulty rows are where keyword guards die; need a meaningful sample."""
+    pairs = _load_safety(fixtures_dir)["pairs"]
+    hard = [p for p in pairs if p.get("difficulty") == "hard"]
+    assert len(hard) >= 15, f"only {len(hard)} hard-difficulty pairs; need >=15"
+
+
+def test_safety_hard_set_is_balanced_block_vs_pass(fixtures_dir: Path) -> None:
+    """Among hard pairs we need both block and pass examples — otherwise we're
+    only testing one side of the precision/recall tradeoff."""
+    pairs = _load_safety(fixtures_dir)["pairs"]
+    hard = [p for p in pairs if p.get("difficulty") == "hard"]
+    hard_block = sum(1 for p in hard if p["expected_block"])
+    hard_pass = sum(1 for p in hard if not p["expected_block"])
+    assert hard_block >= 5, f"only {hard_block} hard blocks"
+    assert hard_pass >= 5, f"only {hard_pass} hard passes"
 
 
 def test_safety_categories_present(fixtures_dir: Path) -> None:

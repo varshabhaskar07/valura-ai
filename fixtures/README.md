@@ -133,21 +133,53 @@ The three conversations exercise:
 **Coverage at a glance** (target: ≥60 queries, balanced):
 
 | Agent | Count |
-|---|---|
-| `portfolio_health` | 11 |
-| `market_research` | 10 |
-| `investment_strategy` | 9 |
-| `financial_calculator` | 8 |
-| `risk_assessment` | 8 |
-| `recommendations` | 7 |
-| `predictive_analysis` | 6 |
+|---|---:|
+| `portfolio_health` | 13 |
+| `recommendations` | 14 |
+| `investment_strategy` | 12 |
+| `market_research` | 11 |
+| `predictive_analysis` | 11 |
+| `risk_assessment` | 10 |
+| `financial_calculator` | 9 |
 | `support` | 5 |
-| Ambiguous / follow-up edge | 3 |
-| **Total** | **67** |
+| **Total** | **85** |
+
+Of these:
+- **10** carry a synthetic `history` field (history-anchored vague queries)
+- **30** are ≤25 characters (terse / minimal-context)
+- **8** are explicitly labeled ambiguous in `notes` (multi-intent, broken English, or convention-call)
 
 Phrasing styles deliberately mixed: formal, terse, slang, all-lowercase,
-mid-sentence typos. A classifier that hits ≥85% on this set should
-hit ≥80% on the hidden set; we don't claim more than that.
+mid-sentence typos, broken English, and history-anchored vague queries.
+A classifier that hits ≥85% on this set should hit ≥80% on the hidden
+set; we don't claim more than that.
+
+### Optional `history` field
+
+Some queries (the very vague ones — `"thoughts?"`, `"worth it?"`,
+`"and now?"`, `"explain like im 5"`) are not classifiable in isolation.
+Those entries carry an extra `history` field with synthetic prior turns:
+
+```jsonc
+{
+  "id": "cl_068",
+  "query": "thoughts?",
+  "expected_agent": "market_research",
+  "expected_entities": {"tickers": ["NVDA"]},
+  "history": [
+    {"role": "user",      "text": "what's going on with NVDA"},
+    {"role": "assistant", "text": "NVDA pulled back from highs ..."}
+  ],
+  "notes": "Inherits research + ticker from prior turn."
+}
+```
+
+The matcher in `tests/` feeds `history` (when present) to the classifier
+exactly as the live SSE pipeline would inject session memory. Queries
+without `history` are evaluated with an empty conversation. This is what
+forces the classifier to actually use prior turns, not just the current
+one — overfitting only to the surface query will tank the score on
+these rows.
 
 ---
 
@@ -182,22 +214,48 @@ hit ≥80% on the hidden set; we don't claim more than that.
 
 **Coverage at a glance** (target: ≥45 pairs):
 
-| Category | Block | Pass | Total |
-|---|---:|---:|---:|
-| `insider_trading` | 5 | 3 | 8 |
-| `market_manipulation` | 5 | 2 | 7 |
-| `money_laundering` | 4 | 2 | 6 |
-| `guaranteed_returns` | 4 | 2 | 6 |
-| `reckless_advice` | 4 | 2 | 6 |
-| `fraud` | 3 | 1 | 4 |
-| `tax_evasion` | 3 | 1 | 4 |
-| Borderline (mixed) | 2 | 2 | 4 |
-| Benign sanity | 0 | 5 | 5 |
-| **Total** | **30** | **20** | **50** |
+| Bucket | Count |
+|---|---:|
+| Block — `insider_trading` | 14 |
+| Block — `market_manipulation` | 7 |
+| Block — `money_laundering` | 6 |
+| Block — `reckless_advice` | 4 |
+| Block — `guaranteed_returns` | 4 |
+| Block — `tax_evasion` | 4 |
+| Block — `fraud` | 3 |
+| **Total block** | **42** |
+| Pass — educational, topical (covers all 7 categories) | 25 |
+| Pass — benign sanity | 5 |
+| **Total pass** | **30** |
+| **Grand total** | **72** |
 
-The 4 borderline rows test the precision/recall tradeoff explicitly
-and are kept separate so a single change to the guard doesn't silently
-flip both numbers.
+By difficulty:
+
+| Difficulty | Block | Pass | Total |
+|---|---:|---:|---:|
+| `easy` | 18 | 9 | 27 |
+| `medium` | 13 | 13 | 26 |
+| `hard` | 11 | 8 | 19 |
+
+The expanded set adds:
+- **6 hypothetical-framing pairs** (`sf_053`–`sf_058`) — "purely
+  hypothetical", "just curious", "out of curiosity", which are common
+  evasion tells that a naive keyword guard misses.
+- **4 indirect-intent pairs** (`sf_051`, `sf_052`, `sf_071`, `sf_072`)
+  — no explicit harmful keyword in the surface text, but the intent
+  is unmistakable from context.
+- **2 mixed-intent pairs** (`sf_057`, `sf_058`) — definition + methodology
+  in one sentence, where the methodology half forces a block.
+- **8 educational-but-trigger-laden pairs** (`sf_061`–`sf_070`) —
+  contain the literal trigger phrases ("manipulation", "Ponzi",
+  "structuring", "guaranteed returns", "no risk", "risk-free", "insider
+  trading", "non-public information") but are framed defensively or
+  definitionally. These are the false-positive rows.
+
+A pure substring/regex guard will fail the methodology-hypotheticals or
+the educational false-positive bait — usually both. Designing the guard
+to handle these forces a real intent decision rather than keyword
+matching.
 
 ---
 
