@@ -1,0 +1,17 @@
+{
+  "user_id": "user_002_concentrated_nvda",
+  "display_name": "Priya Nair",
+  "kyc": {"status": "verified", "country": "US"},
+  "risk_profile": "moderate",
+  "base_currency": "USD",
+  "portfolio": {
+    "positions": [
+      {"ticker": "NVDA", "exchange": "NASDAQ", "quantity": 350, "cost_basis_per_share": 220.00, "currency": "USD"},
+      {"ticker": "MSFT", "exchange": "NASDAQ", "quantity": 40,  "cost_basis_per_share": 305.00, "currency": "USD"},
+      {"ticker": "AAPL", "exchange": "NASDAQ", "quantity": 30,  "cost_basis_per_share": 165.00, "currency": "USD"},
+      {"ticker": "GOOGL","exchange": "NASDAQ", "quantity": 25,  "cost_basis_per_share": 120.00, "currency": "USD"}
+    ],
+    "cash": {"USD": 1200.00}
+  },
+  "notes": "Single position dominates by market value. Health agent must flag concentration as the headline observation, not bury it under metrics."
+}

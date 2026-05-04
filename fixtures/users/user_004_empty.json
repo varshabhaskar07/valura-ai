@@ -1,0 +1,12 @@
+{
+  "user_id": "user_004_empty",
+  "display_name": "Jordan Park",
+  "kyc": {"status": "verified", "country": "US"},
+  "risk_profile": "balanced",
+  "base_currency": "USD",
+  "portfolio": {
+    "positions": [],
+    "cash": {"USD": 10000.00}
+  },
+  "notes": "First-time investor, ready to deploy. Health agent must NOT crash and must produce a BUILD-oriented response (what to consider, not 'no data')."
+}

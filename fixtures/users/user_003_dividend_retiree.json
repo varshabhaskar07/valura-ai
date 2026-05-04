@@ -1,0 +1,20 @@
+{
+  "user_id": "user_003_dividend_retiree",
+  "display_name": "Margaret O'Connor",
+  "kyc": {"status": "verified", "country": "US"},
+  "risk_profile": "conservative",
+  "base_currency": "USD",
+  "portfolio": {
+    "positions": [
+      {"ticker": "SCHD", "exchange": "NYSEARCA", "quantity": 600, "cost_basis_per_share": 71.40,  "currency": "USD"},
+      {"ticker": "VYM",  "exchange": "NYSEARCA", "quantity": 400, "cost_basis_per_share": 105.20, "currency": "USD"},
+      {"ticker": "VNQ",  "exchange": "NYSEARCA", "quantity": 250, "cost_basis_per_share": 88.10,  "currency": "USD"},
+      {"ticker": "JNJ",  "exchange": "NYSE",     "quantity": 120, "cost_basis_per_share": 156.00, "currency": "USD"},
+      {"ticker": "PEP",  "exchange": "NASDAQ",   "quantity": 80,  "cost_basis_per_share": 165.00, "currency": "USD"},
+      {"ticker": "KO",   "exchange": "NYSE",     "quantity": 200, "cost_basis_per_share": 58.00,  "currency": "USD"},
+      {"ticker": "T",    "exchange": "NYSE",     "quantity": 500, "cost_basis_per_share": 18.40,  "currency": "USD"}
+    ],
+    "cash": {"USD": 28500.00}
+  },
+  "notes": "Income-oriented retiree, cash heavy. Health agent should not push high-risk additions; observations should respect risk profile."
+}

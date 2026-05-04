@@ -1,0 +1,32 @@
+{
+  "conversation_id": "conv_003_pronoun_and_implicit",
+  "user_id": "user_005_global_multi_currency",
+  "description": "Pronoun and implicit-entity follow-ups. The user references prior turns with 'it', 'that one', and an empty-ish question that only makes sense given history.",
+  "turns": [
+    {"role": "user",      "text": "what does ASML actually do"},
+    {"role": "assistant", "text": "ASML (ASML.AS, listed in Amsterdam) makes the lithography machines used to manufacture advanced semiconductors. Their EUV systems are the only ones in the world capable of producing the most advanced chip nodes. Want fundamentals or competitive context?"},
+    {"role": "user",      "text": "is it risky to hold"},
+    {"role": "assistant", "text": "Single-name semicap exposure carries cycle and geopolitical risk. Want me to look at this in the context of your portfolio?"},
+    {"role": "user",      "text": "yeah and how exposed am I to china overall"}
+  ],
+  "assertions": [
+    {
+      "turn_index": 0,
+      "expected_agent": "market_research",
+      "expected_entities": {"tickers": ["ASML"]},
+      "notes": "Ticker normalization: ASML must match ASML.AS via exchange-suffix stripping."
+    },
+    {
+      "turn_index": 2,
+      "expected_agent": "risk_assessment",
+      "expected_entities": {"tickers": ["ASML"]},
+      "notes": "Pronoun 'it' resolves to ASML from prior turn; agent shifts to risk_assessment."
+    },
+    {
+      "turn_index": 4,
+      "expected_agent": "risk_assessment",
+      "expected_entities": {"tickers": [], "topics": ["china"]},
+      "notes": "'and how exposed am I to china' — implicit continuation, country/topic exposure analysis."
+    }
+  ]
+}

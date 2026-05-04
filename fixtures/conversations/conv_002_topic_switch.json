@@ -1,0 +1,32 @@
+{
+  "conversation_id": "conv_002_topic_switch",
+  "user_id": "user_001_aggressive_trader",
+  "description": "User pivots between agents within one session: market_research → portfolio_health → financial_calculator. Tests that history does not anchor the classifier when the new query clearly indicates a different agent.",
+  "turns": [
+    {"role": "user",      "text": "yo whats happening with semiconductors lately"},
+    {"role": "assistant", "text": "Semis have been volatile — AI-driven names (NVDA, AVGO, TSM) have led, while memory and analog have lagged. Want a deep dive on a specific name or the sector overall?"},
+    {"role": "user",      "text": "ok now check my portfolio for me"},
+    {"role": "assistant", "text": "Pulling a health check on your account now — concentration, performance vs benchmark, and any flags."},
+    {"role": "user",      "text": "if i add 1000 a month at 9 percent how much in 20 years"}
+  ],
+  "assertions": [
+    {
+      "turn_index": 0,
+      "expected_agent": "market_research",
+      "expected_entities": {"tickers": [], "topics": ["semiconductors"]},
+      "notes": "Slang ('yo'), lowercase, no ticker. Topic-only research."
+    },
+    {
+      "turn_index": 2,
+      "expected_agent": "portfolio_health",
+      "expected_entities": {"tickers": [], "topics": []},
+      "notes": "Topic switch — must NOT inherit market_research from prior turn."
+    },
+    {
+      "turn_index": 4,
+      "expected_agent": "financial_calculator",
+      "expected_entities": {"amount": 1000, "rate": 0.09, "period_years": 20},
+      "notes": "Numeric extraction: '9 percent' → 0.09; ±5% tolerance applies."
+    }
+  ]
+}

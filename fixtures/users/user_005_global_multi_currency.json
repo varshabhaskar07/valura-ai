@@ -1,0 +1,19 @@
+{
+  "user_id": "user_005_global_multi_currency",
+  "display_name": "Hiroshi Tanaka",
+  "kyc": {"status": "verified", "country": "JP"},
+  "risk_profile": "moderate",
+  "base_currency": "USD",
+  "portfolio": {
+    "positions": [
+      {"ticker": "AAPL",   "exchange": "NASDAQ", "quantity": 50,  "cost_basis_per_share": 170.00,   "currency": "USD"},
+      {"ticker": "BABA",   "exchange": "NYSE",   "quantity": 100, "cost_basis_per_share": 92.00,    "currency": "USD"},
+      {"ticker": "ASML.AS","exchange": "AMS",    "quantity": 8,   "cost_basis_per_share": 620.00,   "currency": "EUR"},
+      {"ticker": "SAP.DE", "exchange": "XETRA",  "quantity": 30,  "cost_basis_per_share": 135.00,   "currency": "EUR"},
+      {"ticker": "HSBA.L", "exchange": "LSE",    "quantity": 800, "cost_basis_per_share": 6.40,     "currency": "GBP"},
+      {"ticker": "7203.T", "exchange": "TYO",    "quantity": 400, "cost_basis_per_share": 2150.00,  "currency": "JPY"}
+    ],
+    "cash": {"USD": 1500.00, "EUR": 800.00, "GBP": 300.00, "JPY": 120000.00}
+  },
+  "notes": "4 currencies, 4 exchanges. Concentration math must normalise to base_currency before computing weights — otherwise JPY position looks falsely large in raw quantities."
+}

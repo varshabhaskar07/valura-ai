@@ -1,0 +1,19 @@
+{
+  "user_id": "user_001_aggressive_trader",
+  "display_name": "Alex Reyes",
+  "kyc": {"status": "verified", "country": "US"},
+  "risk_profile": "aggressive",
+  "base_currency": "USD",
+  "portfolio": {
+    "positions": [
+      {"ticker": "TSLA", "exchange": "NASDAQ", "quantity": 120,  "cost_basis_per_share": 215.40, "currency": "USD"},
+      {"ticker": "NVDA", "exchange": "NASDAQ", "quantity": 80,   "cost_basis_per_share": 410.10, "currency": "USD"},
+      {"ticker": "COIN", "exchange": "NASDAQ", "quantity": 60,   "cost_basis_per_share": 132.00, "currency": "USD"},
+      {"ticker": "SOXL", "exchange": "NASDAQ", "quantity": 200,  "cost_basis_per_share": 28.75,  "currency": "USD"},
+      {"ticker": "TQQQ", "exchange": "NASDAQ", "quantity": 150,  "cost_basis_per_share": 55.20,  "currency": "USD"},
+      {"ticker": "ARKK", "exchange": "NYSEARCA","quantity": 100, "cost_basis_per_share": 42.30,  "currency": "USD"}
+    ],
+    "cash": {"USD": 4500.00}
+  },
+  "notes": "Aggressive growth + leveraged ETF tilt. Tests how the agent communicates leverage risk in plain language without lecturing."
+}

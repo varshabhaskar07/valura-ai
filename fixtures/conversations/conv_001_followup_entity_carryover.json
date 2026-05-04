@@ -1,0 +1,26 @@
+{
+  "conversation_id": "conv_001_followup_entity_carryover",
+  "user_id": "user_002_concentrated_nvda",
+  "description": "Same agent across turns; the second user query swaps the ticker but is otherwise vague ('what about X?'). Tests that the classifier inherits agent context from history while still extracting the new entity.",
+  "turns": [
+    {"role": "user",      "text": "tell me about microsoft"},
+    {"role": "assistant", "text": "Microsoft (MSFT) is a US-listed large-cap technology company spanning cloud (Azure), productivity software, and AI infrastructure. Want to dig into a specific angle — fundamentals, recent earnings, or competitive position?"},
+    {"role": "user",      "text": "what about apple?"},
+    {"role": "assistant", "text": "Apple (AAPL) is a US-listed large-cap consumer-tech company, dominated by iPhone revenue with growing services and wearables. Same options — fundamentals, recent earnings, or comp set?"},
+    {"role": "user",      "text": "and amazon"}
+  ],
+  "assertions": [
+    {
+      "turn_index": 2,
+      "expected_agent": "market_research",
+      "expected_entities": {"tickers": ["AAPL"]},
+      "notes": "Vague follow-up — agent must come from history, ticker from current turn."
+    },
+    {
+      "turn_index": 4,
+      "expected_agent": "market_research",
+      "expected_entities": {"tickers": ["AMZN"]},
+      "notes": "Even more elliptical ('and amazon'). Tests that brand-name → ticker still resolves under history-anchored context."
+    }
+  ]
+}
