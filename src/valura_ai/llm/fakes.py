@@ -11,6 +11,7 @@ without ``OPENAI_API_KEY`` and without flakiness.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -119,14 +120,14 @@ class FakeLLMClient(LLMClient):
 
         for matcher, response in self._rules:
             if _match(matcher, record.user_text):
-                return _resolve(response, schema)
+                return await _resolve(response, schema)
 
         if self._default is None:
             raise LLMError(
                 f"FakeLLMClient: no rule matched user message "
                 f"{record.user_text[:80]!r} and no default configured"
             )
-        return _resolve(self._default, schema)
+        return await _resolve(self._default, schema)
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +142,7 @@ def _match(matcher: Matcher, text: str) -> bool:
     return bool(matcher(text))
 
 
-def _resolve(response: Response, schema: type[BaseModel]) -> Any:
+async def _resolve(response: Response, schema: type[BaseModel]) -> Any:
     if isinstance(response, Exception):
         raise response
     if isinstance(response, BaseModel):
@@ -153,6 +154,10 @@ def _resolve(response: Response, schema: type[BaseModel]) -> Any:
         return response
     if callable(response):
         produced = response(schema)
+        # Allow async factories — useful for tests that need to delay the
+        # response (e.g. exercising the pipeline's request timeout).
+        if asyncio.iscoroutine(produced):
+            produced = await produced
         if not isinstance(produced, schema):
             raise LLMParseError(
                 f"FakeLLMClient: factory returned {type(produced).__name__}, "
