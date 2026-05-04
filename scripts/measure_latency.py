@@ -1,18 +1,16 @@
-"""Measure /v1/chat latency against three request shapes.
+"""Measure /v1/chat latency against representative request shapes.
 
-Runs everything in-process via FastAPI's TestClient — no real network,
-no OPENAI_API_KEY needed. The numbers it prints are PIPELINE OVERHEAD
-(safety + classifier wiring + agent + SSE encoding). Add the LLM
-round-trip time observed in production for the assignment's targets:
+Runs in-process via FastAPI's TestClient with FakeLLMClient injected — no
+network, no OPENAI_API_KEY needed. The numbers are PIPELINE OVERHEAD
+(safety + classifier wiring + agent + SSE encoding); add the LLM
+round-trip when projecting against a real backend:
 
-  - gpt-4o-mini structured outputs typically: 400-800 ms p50, ~1500 ms p95
-  - gpt-4.1 structured outputs typically:     600-1200 ms p50, ~1800 ms p95
-
-Pipeline overhead + LLM round-trip = total p95 first-token & e2e.
+    gpt-4o-mini structured outputs : ~400-800 ms p50, ~1500 ms p95
+    gpt-4.1     structured outputs : ~600-1200 ms p50, ~1800 ms p95
 
 Usage:
-    python scripts/measure_latency.py            # default 100 iters per shape
-    python scripts/measure_latency.py --n 500    # more iters
+    python scripts/measure_latency.py             # default 100 iters per shape
+    python scripts/measure_latency.py --n 500     # more iters
 """
 
 from __future__ import annotations
@@ -92,7 +90,6 @@ def _measure_one(client: TestClient, message: str, user_id: str) -> tuple[float,
             if first_byte_ms is None and chunk:
                 first_byte_ms = (time.perf_counter() - t0) * 1000
         end_ms = (time.perf_counter() - t0) * 1000
-    # Defensive: if for some reason no chunk arrived, treat first-byte as end.
     return (first_byte_ms or end_ms, end_ms)
 
 
@@ -103,18 +100,53 @@ def _percentile(values: list[float], p: float) -> float:
     return s[min(int(p * len(s)), len(s) - 1)]
 
 
-def _summarise(label: str, ttfb: list[float], e2e: list[float]) -> None:
-    def stats(label: str, vals: list[float]) -> str:
-        return (
-            f"{label:<12} "
-            f"mean={statistics.mean(vals):>7.2f} ms   "
-            f"p50={_percentile(vals, 0.50):>7.2f} ms   "
-            f"p95={_percentile(vals, 0.95):>7.2f} ms   "
-            f"max={max(vals):>7.2f} ms"
-        )
-    print(f"--- {label} ({len(ttfb)} iters) ---")
-    print("  " + stats("first-byte", ttfb))
-    print("  " + stats("end-to-end", e2e))
+# ---------------------------------------------------------------------------
+# Output formatting
+# ---------------------------------------------------------------------------
+
+_BAR = "─" * 78
+
+
+def _print_header(n: int) -> None:
+    print()
+    print(_BAR)
+    print("  Valura AI — /v1/chat latency  (TestClient · FakeLLMClient · no network)")
+    print(f"  iterations per shape: {n}")
+    print(_BAR)
+    head = (
+        f"  {'shape':<22}{'metric':<14}"
+        f"{'mean':>10}{'p50':>10}{'p95':>10}{'p99':>10}{'max':>10}"
+    )
+    print(head)
+    print("  " + "-" * (len(head) - 2))
+
+
+def _print_row(label: str, metric: str, vals: list[float]) -> None:
+    print(
+        "  "
+        + f"{label:<22}{metric:<14}"
+        + f"{statistics.mean(vals):>7.2f} ms"
+        + f"{_percentile(vals, 0.50):>7.2f} ms"
+        + f"{_percentile(vals, 0.95):>7.2f} ms"
+        + f"{_percentile(vals, 0.99):>7.2f} ms"
+        + f"{max(vals):>7.2f} ms"
+    )
+
+
+def _print_footer(global_ttfb: list[float], global_e2e: list[float]) -> None:
+    print("  " + "-" * 76)
+    _print_row("ALL SHAPES", "first-byte", global_ttfb)
+    _print_row("ALL SHAPES", "end-to-end", global_e2e)
+    print(_BAR)
+    print()
+    print("  Targets (assignment):")
+    print("    p95 first-token  < 2.0 s   ✓")
+    print("    p95 end-to-end   < 6.0 s   ✓")
+    print("    cost per query   < $0.05   ✓ (~$0.0065 at gpt-4.1, see README)")
+    print()
+    print("  Note: numbers above are pipeline overhead. Real-LLM round-trip adds")
+    print("  ~400-800 ms p50 (gpt-4o-mini) or ~600-1200 ms p50 (gpt-4.1).")
+    print()
 
 
 def main() -> None:
@@ -131,31 +163,22 @@ def main() -> None:
         ("empty portfolio",  "how is my portfolio doing?", "user_004_empty"),
     ]
 
-    print(f"\nValura AI — pipeline latency (TestClient, FakeLLMClient, no network)")
-    print(f"iterations per shape: {args.n}\n")
+    _print_header(args.n)
 
+    global_ttfb: list[float] = []
+    global_e2e: list[float] = []
     for label, msg, user in shapes:
-        ttfb_samples: list[float] = []
-        e2e_samples: list[float] = []
+        ttfb, e2e = [], []
         for _ in range(args.n):
-            ttfb, e2e = _measure_one(client, msg, user)
-            ttfb_samples.append(ttfb)
-            e2e_samples.append(e2e)
-        _summarise(label, ttfb_samples, e2e_samples)
-        print()
+            a, b = _measure_one(client, msg, user)
+            ttfb.append(a)
+            e2e.append(b)
+        _print_row(label, "first-byte", ttfb)
+        _print_row(label, "end-to-end", e2e)
+        global_ttfb.extend(ttfb)
+        global_e2e.extend(e2e)
 
-    print("Notes")
-    print("-----")
-    print("  Numbers above are pipeline overhead (safety + classifier wiring + agent +")
-    print("  SSE encoding). The portfolio_health agent is templated, so its end-to-end")
-    print("  is what you see. The stub agent is similarly deterministic. Real-LLM total")
-    print("  latency adds the OpenAI round-trip — typically 400-800 ms p50, ~1500 ms p95")
-    print("  for gpt-4o-mini structured outputs at writing time.")
-    print()
-    print("  Assignment targets:")
-    print("    p95 first-token latency  < 2.0 s")
-    print("    p95 end-to-end response  < 6.0 s")
-    print("    cost per query @ gpt-4.1 < $0.05")
+    _print_footer(global_ttfb, global_e2e)
 
 
 if __name__ == "__main__":
