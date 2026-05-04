@@ -73,6 +73,14 @@ INSIDER_TRADING = CategoryPatterns(
         "c-suite",
         "csuite",
         "trial result",
+        "internal slack",
+        "internal email",
+        "internal memo",
+        "internal communication",
+        "unannounced product",
+        "unannounced launch",
+        "unannounced merger",
+        "unannounced acquisition",
     ),
     intent_phrases=(
         "buddy at",
@@ -99,10 +107,16 @@ INSIDER_TRADING = CategoryPatterns(
         "use information from a leaked",
         "from a leaked",
         "happened to learn something material",
+        "happened to know something material",
+        "happen to know something material",
+        "trade ahead of",
+        "ahead of release",
+        "ahead of announcement",
+        "ahead of the announcement",
+        "ahead of launch",
         "they tip me",
         "ok to trade on it",
         "is it ok to trade",
-        "i trade",  # appears with "they tip me, I trade"
     ),
     intent_regex=(
         # "we have a/an [material event] coming/announcement/next week"
@@ -115,14 +129,51 @@ INSIDER_TRADING = CategoryPatterns(
             r"\bi\s+work\s+at\s+\w+.*\b"
             r"(?:trial|earnings|launch|merger|deal|announcement|guidance|results)\b"
         ),
-        # "[someone at <Co>] told me/hinted [material outcome]"
+        # Relation + work-context + material-event keyword in same sentence.
+        # Requires all three so "my friend at the gym told me about a workout"
+        # does NOT match (no event keyword) but "my uncle works in M&A and
+        # mentioned a client gets bought" does.
         re.compile(
-            r"\b(?:buddy|friend|cousin|partner|spouse|brother|sister|colleague|coworker)\s+at\s+\w+.*"
-            r"\b(?:told me|hinted|tipped|whispered)\b"
+            r"\b(?:my\s+)?"
+            r"(?:buddy|friend|cousin|uncle|aunt|brother|sister|partner|spouse|"
+            r"husband|wife|mom|dad|mother|father|parent|child|kid|niece|nephew|"
+            r"in[- ]law|colleague|coworker|cofounder|boss|client|contact|connection)\s+"
+            r"(?:at|works?\s+at|works?\s+in|works?\s+for|employed\s+(?:at|by)|in)\b"
+            r"[^.?!]{0,200}?"
+            r"\b(?:earnings|merger|acquisition|deal|launch|trial|guidance|"
+            r"product\s+launch|takeover|partnership|announcement|ipo|"
+            r"layoff|restructur|gets?\s+(?:bought|acquired|sold)|"
+            r"getting\s+(?:bought|acquired|sold)|will\s+announce|to\s+announce|"
+            r"client\s+gets|unannounced|inside\s+(?:tip|info))\b"
         ),
-        # "should I (short|trade|buy calls|buy puts)" combined with insider context phrase
+        # NOTE: a relation+leak-verb-only regex was tried here but over-blocked
+        # benign queries like "my friend at the gym told me about a workout".
+        # The event-required regex above plus the substring intents
+        # ("buddy at", "ceo told me", "cfo friend", etc.) cover the canonical
+        # sf_001-style case without that false-positive surface.
+        # "got a (hot/inside) tip" + an action verb in the same sentence.
+        # Matches "got a tip — worth jumping on?" but not "got a tip from my
+        # advisor about saving for retirement".
         re.compile(
-            r"\b(?:should i|can i)\s+(?:short|buy calls|buy puts|trade)\b"
+            r"\bgot\s+(?:a|an)?\s*(?:hot\s+|inside\s+|insider\s+|great\s+|good\s+)?tip\b"
+            r"[^.?!]{0,80}?"
+            r"\b(?:worth|should\s+i|act\s+on|jump\s+on|trade\s+on|play|"
+            r"size|position|short|long|move|buy\s+in|sell|invest)\b"
+        ),
+        # Strong secrecy framing + trade-action verb. Catches "keep this
+        # between us — what's the play here?".
+        re.compile(
+            r"\b(?:between\s+us|keep\s+this\s+between|keep\s+it\s+between|"
+            r"off\s+the\s+record|won['’]t\s+tell)\b"
+            r"[^.?!]{0,100}?"
+            r"\b(?:play|trade|short|long|act|move|position|buy|sell|invest)\b"
+        ),
+        # "happen(ed) to know/learn/find/hear/overhear/discover ... material/inside/non-public/confidential".
+        # Catches "if somebody happened to know something material".
+        re.compile(
+            r"\bhappen(?:ed)?\s+to\s+"
+            r"(?:know|learn|find\s+out|hear|overhear|discover|come\s+across|stumble\s+(?:up|on))\s+"
+            r"(?:something\s+)?(?:material|inside|non[- ]public|confidential)\b"
         ),
     ),
     refusal=(
@@ -325,6 +376,12 @@ FRAUD = CategoryPatterns(
         "set up a ponzi",
         "set up a boiler",
         "without getting caught",  # generic enough to be evasion, but in fraud context blocks
+        # Bare scheme nouns — paired with educational framing they pass via R3
+        # (score=1, educational present); paired with methodology they block
+        # via R1. "ponzi scheme" intentionally NOT listed because "ponzi" alone
+        # would double-count the same query and push it over R3's threshold.
+        "ponzi",
+        "pyramid scheme",
     ),
     intent_phrases=(
         "help me write a fake",
@@ -427,6 +484,22 @@ METHODOLOGY_MARKERS: tuple[str, ...] = (
     "and how to do it",
     "what are the methods",
     "what are common methods",
+    # Walkthrough / explicit-pattern requests. Each on its own is borderline
+    # (could be educational), so they only block when paired with a category
+    # signal via R1.
+    "walk me through",
+    "give me the exact",
+    "the exact pattern",
+    "the exact order",
+    "exact order pattern",
+    "what makes them succeed",
+    "what makes it succeed",
+    "what makes them work",
+    "what's the smart move",
+    "what is the smart move",
+    "what would the smart move",
+    "what's the play here",
+    "what is the play here",
 )
 
 # Evasion / concealment cues — "I'm hiding the ask behind innocent framing".
@@ -450,6 +523,12 @@ EVASION_MARKERS: tuple[str, ...] = (
     "nobody will know",
     "i won't tell",
     "i wont tell",
+    "between us",
+    "keep this between",
+    "keep it between",
+    "if somebody happened",
+    "if someone happened",
+    "if anyone happened",
 )
 
 # Educational framings — when present, a SINGLE phrase hit (no methodology, no
@@ -486,4 +565,10 @@ EDUCATIONAL_MARKERS: tuple[str, ...] = (
     "is it considered",
     "are inflation-linked",
     "considered risk-free",
+    # Causal / structural educational framings. "Why do X always collapse?"
+    # is asking about mechanism from a defender / observer viewpoint.
+    "why do ",
+    "why does ",
+    "why is ",
+    "why are ",
 )
