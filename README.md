@@ -10,7 +10,7 @@ routing + one fully-implemented agent (Portfolio Health) + the HTTP
 layer. Adding the other six specialists later is one line of
 registration, not a rewrite.
 
-> **Defence video:** _link added with the final commit._
+> **Defence video:** https://drive.google.com/file/d/1UQLrxrpfY2iG-ioOQam5xFSjRhaarQEn/view?usp=sharing
 
 ---
 
@@ -504,7 +504,6 @@ at the framework level, not by convention.
 ```
 valura_ai_ass/
 ├── README.md                        # this file
-├── DEFENCE.md                       # video script + demo guide + Q&A
 ├── .env.example                     # documented env vars
 ├── pyproject.toml                   # deps + pytest config
 ├── fixtures/
